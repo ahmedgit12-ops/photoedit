@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo Editor App</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #8fd3f4 0%, #84fab0 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 4px 32px rgba(0,0,0,0.15);
+      border-radius: 16px;
+      padding: 2em 1em;
+      margin: 2em 0;
+      width: 360px;
+      max-width: 96vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      background: linear-gradient(90deg, #43cea2, #185a9d);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      font-size: 2em;
+      font-weight: 700;
+      margin-bottom: 1em;
+      text-align: center;
+    }
+    .photo-list {
+      width: 100%;
+      margin-top: 1em;
+    }
+    .photo-item {
+      background: #f9f9f9;
+      border-radius: 10px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.09);
+      padding: 1em;
+      margin-bottom: 1em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .photo-preview, #edit-canvas {
+      max-width: 90vw;
+      max-width: 320px;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 0.5em;
+      transition: filter 0.3s;
+      background: #eee;
+      display: block;
+    }
+    .actions {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.5em;
+      flex-wrap: wrap;
+    }
+    button {
+      background: linear-gradient(90deg, #43cea2, #185a9d);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5em 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #185a9d, #43cea2);
+    }
+    input[type="file"] {
+      display: none;
+    }
+    label.upload-label {
+      background: linear-gradient(90deg, #43cea2, #185a9d);
+      color: #fff;
+      border-radius: 6px;
+      padding: 0.5em 1em;
+      cursor: pointer;
+      font-weight: 500;
+      margin-bottom: 1em;
+      display: inline-block;
+      transition: background 0.2s;
+    }
+    label.upload-label:hover {
+      background: linear-gradient(90deg, #185a9d, #43cea2);
+    }
+    .caption-input {
+      width: 96%;
+      border: 1px solid #b4e2e7;
+      border-radius: 5px;
+      padding: 0.4em;
+      margin-bottom: 0.3em;
+      font-size: 1em;
+    }
+    .editor-panel {
+      width: 100%;
+      padding: 1em 0 0.5em 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #eefdfa;
+      border-radius: 8px;
+      margin-bottom: 1em;
+      box-shadow: 0 1px 6px #43cea244;
+    }
+    .editor-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin: 0.5em 0;
+      align-items: center;
+      justify-content: center;
+    }
+    .editor-controls label, .editor-controls select {
+      font-size: 0.97em;
+      font-weight: 500;
+      color: #185a9d;
+      margin-right: 0.7em;
+    }
+    .editor-controls input[type=range] {
+      width: 120px;
+      margin-left: 0.5em;
+    }
+    .crop-controls {
+      display: flex;
+      gap: 0.5em;
+      margin-bottom: 0.5em;
+      align-items: center;
+      justify-content: center;
+    }
+    .crop-controls label {
+      font-size: 0.97em;
+      font-weight: 500;
+      color: #43cea2;
+      margin-right: 0.5em;
+    }
+    @media (max-width: 480px) {
+      .container {
+        width: 98vw;
+        margin: 0.2em 0;
+        padding: 1em 0.3em;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      h1 {
+        font-size: 1.3em;
+      }
+      .photo-preview, #edit-canvas {
+        max-width: 98vw;
+        max-height: 140px;
+      }
+      button, label.upload-label {
+        padding: 0.45em 0.7em;
+        font-size: 0.95em;
+      }
+      .editor-controls input[type=range] {
+        width: 80px;
+      }
+    }
+    @media (max-width: 600px) {
+      .container {
+        min-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+        margin: 0;
+        padding-top: 1em;
+        padding-bottom: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Photo Editor App</h1>
+    <form id="add-photo-form">
+      <label for="photo-upload" class="upload-label">Add Photo</label>
+      <input type="file" accept="image/*" id="photo-upload">
+      <input type="text" id="caption" class="caption-input" placeholder="Caption (optional)">
+      <button type="submit">Upload</button>
+    </form>
+    <div class="photo-list" id="photo-list"></div>
+    <div id="editor-modal" style="display:none;">
+      <div class="editor-panel">
+        <canvas id="edit-canvas"></canvas>
+        <div class="editor-controls">
+          <label>
+            Filter:
+            <select id="filter-select">
+              <option value="none">None</option>
+              <option value="fresh">Fresh</option>
+              <option value="cool">Cool</option>
+              <option value="warm">Warm</option>
+              <option value="bright">Bright</option>
+              <option value="dark">Dark</option>
+              <option value="vivid">Vivid</option>
+              <option value="random">Random</option>
+              <option value="sepia">Sepia</option>
+              <option value="grayscale">Grayscale</option>
+              <option value="hue">Hue</option>
+            </select>
+          </label>
+          <label>
+            Brightness:
+            <input type="range" id="brightness-range" min="0.5" max="2" step="0.01" value="1">
+          </label>
+        </div>
+        <div class="crop-controls">
+          <label>
+            Crop:
+            <input type="number" id="crop-x" style="width:40px;" min="0" value="0"> x
+            <input type="number" id="crop-y" style="width:40px;" min="0" value="0"> y
+            <input type="number" id="crop-w" style="width:40px;" min="1" value="100"> w
+            <input type="number" id="crop-h" style="width:40px;" min="1" value="100"> h
+          </label>
+          <button type="button" id="apply-crop">Apply Crop</button>
+        </div>
+        <div class="actions">
+          <button type="button" id="save-edit">Save</button>
+          <button type="button" id="cancel-edit" style="background:linear-gradient(90deg,#fa709a,#fee140);color:#222;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  // More vivid & named filters
+  const FILTER_MAP = {
+    none: '',
+    fresh: 'brightness(1.15) saturate(1.4) hue-rotate(-10deg) contrast(1.1)',
+    cool: 'brightness(1.1) saturate(1.3) hue-rotate(200deg) contrast(1.1)',
+    warm: 'brightness(1.1) saturate(1.2) hue-rotate(-30deg) contrast(1.1)',
+    bright: 'brightness(1.5) contrast(1.2)',
+    dark: 'brightness(0.7) contrast(1.2)',
+    vivid: 'contrast(2) brightness(1.2) saturate(2)',
+    sepia: 'sepia(0.8) saturate(1.2)',
+    grayscale: 'grayscale(0.7) contrast(1.1)',
+    hue: 'hue-rotate(90deg) saturate(1.5)',
+    random: [
+      'grayscale(0.5) contrast(1.3)',
+      'sepia(0.6) saturate(1.5)',
+      'brightness(1.2) contrast(1.2)',
+      'hue-rotate(30deg) saturate(2)',
+      'invert(0.1) brightness(1.1)',
+      'drop-shadow(0 0 10px #43cea2)',
+      'hue-rotate(90deg) saturate(2)',
+      'contrast(2) brightness(1.1)',
+      'sepia(0.8) hue-rotate(150deg) saturate(1.8)',
+      'brightness(1.5) contrast(1.3) saturate(2)',
+      'grayscale(0.2) sepia(0.5) hue-rotate(60deg)'
+    ]
+  };
+  const STORAGE_KEY = 'photoEditorPhotos';
+
+  function getPhotos() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  }
+  function savePhotos(photos) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(photos));
+  }
+
+  function getFilterCss(name, brightness) {
+    let filter = FILTER_MAP[name];
+    if (Array.isArray(filter)) {
+      filter = filter[Math.floor(Math.random() * filter.length)];
+    }
+    if (!filter) filter = '';
+    return `brightness(${brightness}) ${filter}`;
+  }
+
+  // Editor modal variables
+  let editIndex = null;
+  let editPhoto = null;
+  let editImg = null;
+  let origImgWidth = 0;
+  let origImgHeight = 0;
+
+  function showEditor(idx) {
+    editIndex = idx;
+    editPhoto = {...getPhotos()[idx]};
+    document.getElementById('editor-modal').style.display = 'block';
+
+    editImg = new window.Image();
+    editImg.src = editPhoto.dataUrl;
+    editImg.onload = function() {
+      origImgWidth = editImg.naturalWidth;
+      origImgHeight = editImg.naturalHeight;
+      setupCanvas(editImg, origImgWidth, origImgHeight, editPhoto.filter || 'none', 1);
+      // Set crop defaults
+      document.getElementById('crop-x').value = 0;
+      document.getElementById('crop-y').value = 0;
+      document.getElementById('crop-w').value = origImgWidth;
+      document.getElementById('crop-h').value = origImgHeight;
+      document.getElementById('brightness-range').value = 1;
+      document.getElementById('filter-select').value = 'none';
+    };
+  }
+
+  function hideEditor() {
+    document.getElementById('editor-modal').style.display = 'none';
+    editIndex = null;
+    editPhoto = null;
+    editImg = null;
+  }
+
+  function setupCanvas(img, w, h, filterName, brightness) {
+    const canvas = document.getElementById('edit-canvas');
+    canvas.width = w > 320 ? 320 : w;
+    canvas.height = h > 180 ? 180 : h;
+    const ctx = canvas.getContext('2d');
+    ctx.filter = getFilterCss(filterName, brightness);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, canvas.width, canvas.height);
+  }
+
+  document.getElementById('filter-select').addEventListener('change', function() {
+    const filterName = this.value;
+    const brightness = parseFloat(document.getElementById('brightness-range').value);
+    setupCanvas(editImg, origImgWidth, origImgHeight, filterName, brightness);
+  });
+
+  document.getElementById('brightness-range').addEventListener('input', function() {
+    const filterName = document.getElementById('filter-select').value;
+    const brightness = parseFloat(this.value);
+    setupCanvas(editImg, origImgWidth, origImgHeight, filterName, brightness);
+  });
+
+  document.getElementById('apply-crop').addEventListener('click', function() {
+    const cropX = parseInt(document.getElementById('crop-x').value);
+    const cropY = parseInt(document.getElementById('crop-y').value);
+    const cropW = parseInt(document.getElementById('crop-w').value);
+    const cropH = parseInt(document.getElementById('crop-h').value);
+    // Crop image and draw on canvas
+    const canvas = document.getElementById('edit-canvas');
+    canvas.width = cropW > 320 ? 320 : cropW;
+    canvas.height = cropH > 180 ? 180 : cropH;
+    const ctx = canvas.getContext('2d');
+    ctx.filter = getFilterCss(document.getElementById('filter-select').value, parseFloat(document.getElementById('brightness-range').value));
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(editImg, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+  });
+
+  document.getElementById('save-edit').addEventListener('click', function() {
+    const filterName = document.getElementById('filter-select').value;
+    const brightness = parseFloat(document.getElementById('brightness-range').value);
+    const canvas = document.getElementById('edit-canvas');
+    // Save to localStorage
+    const photos = getPhotos();
+    photos[editIndex] = {
+      ...photos[editIndex],
+      dataUrl: canvas.toDataURL('image/png'),
+      filter: filterName,
+      brightness: brightness
+    };
+    savePhotos(photos);
+    renderPhotos();
+    hideEditor();
+    alert('Photo saved with edits!');
+  });
+
+  document.getElementById('cancel-edit').addEventListener('click', function() {
+    hideEditor();
+  });
+
+  function renderPhotos() {
+    const photoList = document.getElementById('photo-list');
+    photoList.innerHTML = '';
+    const photos = getPhotos();
+    if (!photos.length) {
+      photoList.innerHTML = '<p style="text-align:center;color:#aaa;">No photos yet. Add one!</p>';
+      return;
+    }
+    photos.forEach((photo, idx) => {
+      const div = document.createElement('div');
+      div.className = 'photo-item';
+      // Photo preview
+      const img = document.createElement('img');
+      img.className = 'photo-preview';
+      img.src = photo.dataUrl;
+      img.alt = photo.caption || 'Photo';
+      const filterName = photo.filter || 'none';
+      const brightness = photo.brightness || 1;
+      img.style.filter = getFilterCss(filterName, brightness);
+      div.appendChild(img);
+
+      // Caption (editable)
+      const captionInput = document.createElement('input');
+      captionInput.type = 'text';
+      captionInput.value = photo.caption || '';
+      captionInput.className = 'caption-input';
+      captionInput.placeholder = 'Caption';
+      captionInput.addEventListener('change', () => {
+        updatePhoto(idx, {caption: captionInput.value});
+      });
+      div.appendChild(captionInput);
+
+      // Actions
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      // Open editor panel
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.onclick = () => {
+        showEditor(idx);
+      };
+      actions.appendChild(editBtn);
+
+      // Remove filter
+      const clearBtn = document.createElement('button');
+      clearBtn.textContent = 'Clear Filter';
+      clearBtn.onclick = () => {
+        updatePhoto(idx, {filter:"none", brightness:1});
+      };
+      actions.appendChild(clearBtn);
+
+      // Delete
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.style.background = "linear-gradient(90deg,#fa709a,#fee140)";
+      deleteBtn.style.color = "#222";
+      deleteBtn.onclick = () => {
+        if (confirm('Delete this photo?')) {
+          deletePhoto(idx);
+        }
+      };
+      actions.appendChild(deleteBtn);
+
+      div.appendChild(actions);
+      photoList.appendChild(div);
+    });
+  }
+
+  document.getElementById('add-photo-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('photo-upload');
+    const captionInput = document.getElementById('caption');
+    const file = fileInput.files[0];
+    if (!file) {
+      alert('Please select a photo.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const dataUrl = ev.target.result;
+      const photos = getPhotos();
+      photos.push({
+        dataUrl: dataUrl,
+        caption: captionInput.value,
+        filter: "none",
+        brightness: 1
+      });
+      savePhotos(photos);
+      renderPhotos();
+      fileInput.value = '';
+      captionInput.value = '';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function updatePhoto(idx, updates) {
+    const photos = getPhotos();
+    photos[idx] = {...photos[idx], ...updates};
+    savePhotos(photos);
+    renderPhotos();
+  }
+
+  function deletePhoto(idx) {
+    const photos = getPhotos();
+    photos.splice(idx, 1);
+    savePhotos(photos);
+    renderPhotos();
+  }
+
+  window.onload = function() {
+    renderPhotos();
+  };
+  </script>
+</body>
+</html>
